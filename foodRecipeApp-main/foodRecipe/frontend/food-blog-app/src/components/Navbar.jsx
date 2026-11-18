@@ -1,42 +1,98 @@
-import React, { useEffect, useState } from 'react'
-import Modal from './Modal'
-import InputForm from './InputForm'
-import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import Modal from "./Modal";
+import InputForm from "./InputForm";
+import {
+  AUTH_CHANGE_EVENT,
+  clearAuthSession,
+  getAuthToken,
+  getStoredUser,
+} from "../constants";
 
 export default function Navbar() {
-  const [isOpen,setIsOpen]=useState(false)
-  let token=localStorage.getItem("token")
-  const [isLogin,setIsLogin]=useState(token ? false : true)
-  let user=JSON.parse(localStorage.getItem("user"))
+  const [isOpen, setIsOpen] = useState(false);
+  const [token, setToken] = useState(() => getAuthToken());
+  const [user, setUser] = useState(() => getStoredUser());
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(()=>{
-    setIsLogin(token ? false : true)
-  },[token])
+  const isLoggedIn = Boolean(token);
 
-  const checkLogin=()=>{
-    if(token){
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
-      setIsLogin(true)
+  useEffect(() => {
+    const syncAuth = () => {
+      setToken(getAuthToken());
+      setUser(getStoredUser());
+    };
+    window.addEventListener(AUTH_CHANGE_EVENT, syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener(AUTH_CHANGE_EVENT, syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
 
+  const handleAuthAction = () => {
+    if (isLoggedIn) {
+      clearAuthSession();
+      if (
+        location.pathname === "/myRecipe" ||
+        location.pathname === "/addRecipe" ||
+        location.pathname.startsWith("/editRecipe")
+      ) {
+        navigate("/");
+      }
+    } else {
+      setIsOpen(true);
     }
-    else{
-      setIsOpen(true)
+  };
+
+  const handleProtectedNav = (e) => {
+    if (!isLoggedIn) {
+      e.preventDefault();
+      setIsOpen(true);
     }
-  }
+  };
 
   return (
     <>
-        <header>
-            <h2>Yumm!go🦆</h2>
-            <ul>
-                <li><NavLink to="/">Home</NavLink></li>
-                <li onClick={()=>isLogin && setIsOpen(true)}><NavLink to={ !isLogin ? "/myRecipe" : "/"}>My Recipe</NavLink></li>
-                <li onClick={()=>isLogin && setIsOpen(true)}><NavLink to={ !isLogin ? "/favRecipe" : "/"}>Favourites</NavLink></li>
-                <li onClick={checkLogin}><p className='login'>{ (isLogin)? "Login": "Logout" }{user?.email ? `(${user?.email})` : ""}</p></li>
+      <header className="navbar">
+        <div className="navbar-inner">
+          <NavLink to="/" className="brand">
+            <span className="brand-dot" aria-hidden="true" />
+            <span>Yumm!go</span>
+          </NavLink>
+          <nav aria-label="Main navigation">
+            <ul className="nav-links">
+              <li>
+                <NavLink to="/" end>
+                  Home
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/myRecipe" onClick={handleProtectedNav}>
+                  My Recipes
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/favRecipe">Favourites</NavLink>
+              </li>
+              <li>
+                <button type="button" className="nav-auth-btn" onClick={handleAuthAction}>
+                  {isLoggedIn ? "Logout" : "Login"}
+                  {isLoggedIn && user?.email ? (
+                    <span className="nav-user-email">({user.email})</span>
+                  ) : null}
+                </button>
+              </li>
             </ul>
-        </header>
-       { (isOpen) && <Modal onClose={()=>setIsOpen(false)}><InputForm setIsOpen={()=>setIsOpen(false)}/></Modal>}
+          </nav>
+        </div>
+      </header>
+      {isOpen && (
+        <Modal onClose={() => setIsOpen(false)}>
+          <InputForm setIsOpen={() => setIsOpen(false)} />
+        </Modal>
+      )}
     </>
-  )
+  );
 }
