@@ -1,5 +1,7 @@
 # Yummigo — Full-Stack Food Recipe Application
 
+**Live Demo:** https://yummigo-ten.vercel.app
+
 Yummigo is a full-stack food recipe web application where users can discover community recipes, search by dish or ingredient, create an account, publish recipes with cover images, edit or delete their own dishes, and save personal favourites.
 
 Built with **React 18 + Vite** on the frontend, **Node.js + Express** on the backend, and **MongoDB + Mongoose** for data persistence, with **bcrypt** password hashing and **JWT** authentication.
